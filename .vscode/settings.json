@@ -1,0 +1,13 @@
+{
+    "markdown-pdf.headerTemplate": "",
+    "markdown-pdf.footerTemplate": "<div style=\"font-size: 7px; margin: 0 auto;\"> <span class='pageNumber'></span> / <span class='totalPages'></span></div>",
+    "markdown-pdf.outputDirectoryRelativePathFile": true,
+    "markdown-pdf.includeDefaultStyles": false,
+    "markdown-pdf.margin.left": "0.5cm",
+    "markdown-pdf.margin.right": "0.5cm",
+    "markdown-pdf.margin.top": "0.5cm",
+    "markdown-pdf.scale": 0.8,
+    "markdown-pdf.styles": [
+        "./styles/style.css"
+    ]
+}
