@@ -1,0 +1,1 @@
+The `sctr_initialize_crt()` function initializes the C Run-time Library (CRT) which is the part of the C++ Standard Library that incorporates the ISO C99 standard library.

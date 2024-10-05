@@ -12,3 +12,5 @@ pyvenv.cfg
 .venv
 pip-selfcheck.json
 *.pdf
+radare2.AppImage
+*.exe
