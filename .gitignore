@@ -11,6 +11,9 @@ ltex.*
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+
+# Others
 *.pdf
 radare2.AppImage
 *.exe
+*.i64
