@@ -1,5 +1,7 @@
 # Partial Encryption
 
+This was my first time debugging an .exe file and using IDA, so I may have vented my pent-up frustration into writing a too exhaustive explanation. Hope you don't mind, KEKW.
+
 ## Introduction
 
 The description of this challenge says: "Static-Analysis on this program didn't reveal much. There must be a better way to approach this...", but not knowing what else to do I still decided to at least give it a try. Thus, as always, I used Ghidra to look into the binary and see what I could find. This time the disassembly seems a bit strange, since it was not able to find the usual entry point of the program (like for ELF ones). This time the entry was referring function which did not seem to be the main one. In fact inside it there some functions calls such as the `sctr_initialize_crt()`, which after some research I found out that is used to initialize the C Run-time Library (CRT) which is the part of the C++ Standard Library that incorporates the ISO C99 standard library.
@@ -18,21 +20,24 @@ I won't bother you with the details of the hours I spent trying to understand wh
 
 ## Code Analysis
 
-<img src="images/main.png" alt="check_args" width="80%" height="80%" style="display: block; margin: 0 auto; padding-bottom: 20" />
+<img src="images/main.png" alt="check_args" width="70%" style="display: block; margin: 0 auto; padding-bottom: 20" />
 
 The code is made of four principal functions: 
 - `check_args` checks if the argument is equal to 2, otherwise it prints the input syntax and exits (`./chal <flag>`). The syntax is contained into the first allocation call, but I could not find out what the second one is for. 
 
-<img src="images/check_args.png" alt="check_args" width="80%" height="80%" style="display: block; margin: 0 auto; padding-bottom: 20" />
-<img src="images/wrong_argc.png" alt="wrong_argc" width="80%" height="80%" style="display: block; margin: 0 auto; padding-bottom: 20" />
+<img src="images/check_args.png" alt="check_args" width="70%" style="display: block; margin: 0 auto; padding-bottom: 20" />
+
+<img src="images/wrong_argc.png" alt="wrong_argc" width="70%" style="display: block; margin: 0 auto; padding-bottom: 20" />
 
 - `check_input_len` which checks if any character of the input is equal to NULL. If it is, it prints `Nope` and exits. Like before, I could not figure out what the second allocation is for. 
 
-<img src="images/nope-wrong-length.png" alt="print_nope" width="80%" height="80%" style="display: block; margin: 0 auto; padding-bottom: 20" />
+<img src="images/check_input_len.png" alt="print_nope" width="70%" style="display: block; margin: 0 auto; padding-bottom: 20" />
+
+<img src="images/nope-wrong-length.png" alt="print_nope" width="70%" style="display: block; margin: 0 auto; padding-bottom: 20" />
 
 - `check_flag` allocates and decrypts four functions, each one comparing part of the flag with the input.
 
-<img src="images/check_flag.png" alt="print_nope" width="80%" height="80%" style="display: block; margin: 0 auto; padding-bottom: 20" />
+<img src="images/check_flag.png" alt="print_nope" width="80%" style="display: block; margin: 0 auto; padding-bottom: 20" />
 
 - `is_flag_correct` checks if the value returned by `check_flag`, if `true` prints `Yes` otherwise `No`.
 
@@ -43,18 +48,24 @@ The code is made of four principal functions:
 
 ## Solution
 
-After the wall of text above, I think its time to retrieve the flag. 
+After the wall of text above, I think its time to retrieve the flag. To debug the program on Windows I found two ways: IDA or x64dbg. I used the former, but it does not really matter which one you use. First, we need to set some breakpoints, we can set it to either `VirtualAlloc` or `VirtualFree` call inside the `check_flag` function, I'll explain both of them, but I prefer the latter (easier IMO), so the former will be shorter. 
 
-With flag length of 22, the program enters the third function, which is the one that actually decrypts the flag.
+- `VirtualAlloc`: by checking the calling convention for x86-64, we know that this function will return the address of the allocated memory in the `%rax` register. Once reached the breakpoint, we can go through the assembly instruction using the `Step into` (F7) and once we see that the `%rax` register is set to an address value we can right-click on it and select `Follow in Disassembler`. Here you will notice that the memory location is containing only zeros (this is because the location is still to be populated). Thus, after the loop you will see something which does not look like assembly, but by right-clicking on it and selecting `Code` (`C` shortcut), IDA will treat it as assembly.
 
-x86-64 (AMD64) uses a calling convention different from x86 (32 bit addresses based). In fact in x86-64 the calling convention for function parameters is `RCX, RDX, R8, R9` (in that order) for integer, struct or pointer arguments. [1]
+- `VirtualFree`: this is more straightforward IMO. Once you set the breakpoint on the `VirtualFree` call inside `check_flag`, you can run the debugger and once it stops you can already see that the `%rcx` register holds an address. By right-clicking and selecting `Follow in Disassembler` you will see a bunch of randoms characters, but like before we can convert it to assembly by pressing `C`.
 
-FLAG: HTB{W3iRd_RUnT1m3_DEC}
+The memory location before and after converting it to assembly will look something like this: 
 
-HTB{}
-W3iRd_
-RunT1m3_
-DEC
+<div style="display: flex; justify-content: space-around;">
+  <img src="images/code_before_confersion.png" alt="print_yes" width="50%" style="margin-right: 10px;" />
+  <img src="images/flag_first_letter.png" alt="print_no" width="50%" style="margin-left: 10px;" />
+</div>
+
+Now that we have the assembly code, notice the instruction `cmp eax, 48h`. The `48h` corresponds to the letter H (first letter of the flag) and if you go through the code you will find the other letter. Remember that the flag comparison is divided in four steps, thus you need to repeat the process above other three times to find the whole flag.
+
+I think solving the challenge by using the breakpoint at `VirtualFree` is easier because once the program reaches the call you will have both the `%rcx` address and the memory location pointed populated with all the necessary information.
+
+> N.B.: x86-64 (AMD64) uses a calling convention different from x86 (32 bit addresses based). In fact in x86-64 the calling convention for function parameters is `RCX, RDX, R8, R9` (in that order). [1]
 
 ## Sources
 - [1] Wikipedia x86 calling convention [https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention](https://en.wikipedia.org/wiki/X86_calling_conventions#Microsoft_x64_calling_convention)
